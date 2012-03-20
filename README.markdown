@@ -1,4 +1,4 @@
-**This project is currently DEAD. I found it looking through my old files. Worked on it in September 2009.**
+**This project is currently DEAD. Worked on it in September 2009.**
 
 ## PDFchomp: graphical PDF editor
 
