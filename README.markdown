@@ -2,6 +2,9 @@
 
 ## PDFchomp: graphical PDF editor
 
+![PDFchomp screenshot](screenshot.jpg)
+
+
 PDFchomp is an open source (GPL) PDF editor with a Python API. In the last version you could open PDF file, choose a crop rectangle with a mouse and save the cropped file.
 
 PDFchomp depends on an open source [MuPDF][] library (used by very nice PDF viewer [SumatraPDF][]). The library is in C, so I wrapped it with [Cython][], and added basic capabilities for PDF editing. The result is a Python module `mupdf`, which can be used this way:
