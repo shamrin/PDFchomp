@@ -1,0 +1,170 @@
+== Big Goals ==
+
+* GUI (prototype with PyGUI)
+* write support
+* plug-in support (aka provide powerful API)
+* fix Makefile.msvc
+
+== TODO ==
+
+* Fix hang when running: pdfedit.py not_found.pdf
+* make 'Crop' wizard-like. User: 1. click Crop, 2. refine, 3. click OK
+* review memory leaks
+* implement zoom
+
+* [with inet access] run hg push on pygui-patches/.hg/patches
+* take a look at hgsvn docs, and then run hgpullsvn for Sumatra repository
+* push MuPDF patches (where?)
+* review places to add 'not None' to 'def' methods in 'cdef' classes
+* (read) object and cross-reference *streams* (PDF 7.5.7 & 7.5.8)
+* (read) understand Linearized PDF
+* (read) pdf load in mupdf (is keepobj needed on page object?): pdf_loadobject?
+* (read) buffer interface: Cython doc 5.8.7, wiki.cython.org/docs/specialmethods
+* To improve PyGUI, here are some bugs: 
+    http://mail.python.org/pipermail/python-list/2009-April/709192.html
+* (read) ElementTree and lxml for tree API
+
+* (later) reorder pages
+* (later/maybe) implement double-buffering
+* (later/maybe) invalidate selection dark shadow
+* (maybe) minimize copying image data
+* (read/maybe) investigate existing pdf apis (adobe? podofo? pypdf? pdfminer?)
+* (maybe) look into lxml for Cython ideas
+* (maybe) rewrite base_error.c:throw/catch and merge with python traceback
+    - probably not needed, because throw/catch already print helpful messages
+* (maybe) find why 12-scroll.py doen't work on pywin 214 (& 213?), works on 212
+* (maybe) inherit from list/dict, see wiki.cython.org/FAQ/cdef_derive
+* (maybe) is infinite recursion check enough? (pdf_pagetree.c:getpageobject)
+* (maybe) cycles in mupdf refcounting?!
+   - e.g. in obj_simple.c:fz_resolveindirect: ref->u.r.obj = fz_keepobj(ref)
+* (maybe) try using parts of pdfclean for non-incremental write support
+* (maybe) put cdef extern into pxd file and cimport it here (& add to Cython?)
+* (maybe/later) allow input from string, file-like objects or py buffers
+* (maybe) possible strategies to edit large files: 
+    1. (easier) copy to a temp file, then mmap it
+    2. (better?) teach MuPDF to read PDF from disk, but with updates in memory
+* (maybe) weakref for PDF objects (for caches), Cython doc: 4.10, PEP 205
+* (maybe) better usage of fz_throw/fz_catch (try __Pyx_AddTraceback(funcname))
+* (maybe) generate visual graph of PDF objects (see PyPy+PyGame, graphviz)
+
+DONE default selection on 'Crop' action
+DONE fix selection move (shouldn't shrink)
+DONE finish changing selection
+DONE See 27-poly.py, then darken outer part of selection
+DONE Fix PyGUI issue2, then simplify and test pdfedit.py
+DONE test cropping on different pages
+DONE allow browsing to different pages
+DONE add status information: mouse position
+DONE (easy) better repr for PDF (file name) and Page (page number, file...)
+DONE test and allow several crops 
+DONE PDF.updates() should return '' when no updates
+DONE Bug: 'Save' or 'Save as' when file already exists => win err 183:
+    ERROR_ALREADY_EXISTS, "Cannot create a file when that file already exists."
+DONE Save as
+DONE test BlobEdit on Linux when the view is scrolled somewhere (Greg helped)
+DONE apply Crop to file:
+    1. figure out how to show changes without using temporary files. Trying:
+        a. DONE read file to memory
+        b. DONE fz_openrmemory, fz_rewindbuffer wants to own the buffer:
+            - but fz_rewindbuffer can be disabled with buf->eof = 1
+            - and a small fix in stm_read.c:fz_readimp to skip buf->eof = 0
+        c. DONE write incremental changes to memory: PDF.save_to_memory():
+            - extract most of save_incrementally() into save_updates_to_str():
+                * invent how to replace f.tell() calls
+            - rewrite save_incrementally() to use save_updates_to_str()
+            - write save_to_memory()
+        d. DONE call pdf_loadxref & friends with suitable len!
+        e. DONE use all of this in gui [note: very buggy!]
+        f. DONE find sources of gui bugs in Crop
+        g. DONE cleanup remnants of self-fucking in openxref
+DONE narrow down and fix "empty page after crop" bug:
+    - PDF coord system origin is in lower-left corner
+    - PyGUI coord system origin is in upper-left corner
+DONE recalculate from View to PDF coordinates when cropping
+DONE write tests for graphics
+DONE re-enable save-image-to-PIL
+DONE complete tests for fastsave
+DONE fix bug: fastsave() gives startxref==Prev when running after memorysave()
+DONE remove SKIP in PDF doctests
+DONE hack PyGUI to accept in-memory images
+DONE send a letter to Cython list
+DONE more specific exceptions instead of general Exception
+DONE look at fz_catch etc, then decide what to do with `die` and 'if error'
+    - just raise ProperException(message)
+    - get rid of die
+DONE (after repr) use repr in PDF doctests
+DONE \n vs \r\n when writing changes (see PDF standart)
+    \r\n would be okay - reportlab is doing the same
+DONE refactor Realfromobj and Dictionaryfromobj
+DONE refactor fz_sprintobj and fz_dictputs use
+DONE try incremental update (xref update)
+DONE move drawgc alloc/dealloc from Page class
+DONE Understand what pdf_getpageobject returns. Are keepobj & dropobj needed?
+  - basically it returns what fz_arrayget returns, so keepobj/dropobj wouldn't
+    break anything. Their necessity depends on how PDF reading is implemented.
+DONE understand refcounting (fz_keepobj, fz_drop*, pdf_drop*, fz_free ...)
+DONE (read) Python programs style PEP
+DONE find or create PDF file for basic testing
+DONE generate images with page content (based on pdfdraw.c:drawpnm(npage))
+DONE (read) PIL docs for imaging API
+DONE compile pdfclean.exe
+DONE __next__() method (NOT next()! - Cython doc: 5.7)
+DONE (read) look at GNU PDF intro
+DONE closexref() when PDF object is GC'ed (__cinit__, __dealloc__?)
+DONE some pythonic way to handle errors instead of exit(1) in die()
+DONE (easy) remove pdftool.c from mupdf.lib
+DONE get mediabox (for cropping later)
+DONE make openxref a member of PDF class
+
+== API thoughts (inspired by PIL) ==
+
+>>> import MuPDF as PDF # ?
+>>> pdf = PDF.open('test.pdf')
+>>> '%s created "%s" (PDF ver %s)' % (pdf.version, pdf.author, pdf.title)
+John Doe created "Test PDF file" (PDF ver 1.7)
+>>> pages = pdf.pages() # create list-like Pages() object
+>>> len(pages)
+2
+>>> pages[0].size    # >>> pages[0].bounds
+(200.0 200.0)        # (0.0 0.0 200.0 200.0)
+>>> for page in pages:
+...     page.crop(50, 50, 150, 150) # in-place for now...
+...     #page.bounds = 50, 50, 150, 150
+>>> pdf.save('cropped.pdf') # save result
+>>> for i, page in enumerate(pdf.pages()): # or `enumerate(pdf)`
+...     page.image(dpi).save('%d.bmp' % i) # .image() returns PIL image (now)
+
+PyGUI notes
+===========
+
+== Converting _win.ScreenToClient(point) to ctypes ==
+
+def ScreenToClient(win, point):
+    import ctypes
+    class POINT(ctypes.Structure):
+        _fields_ = [
+            ('x', ctypes.c_long),
+            ('y', ctypes.c_long)
+        ]
+    user32 = ctypes.windll.user32
+
+    point = POINT()
+    point.x, point.y = point
+    user32.ScreenToClient(win.GetSafeHwnd(), ctypes.byref(point))
+    return point.x, point.y
+
+
+MuPDF API notes
+===============
+
+== Loading ==
+
+PDF file is loaded with pdf_loadxref(xref, filename), which is basically:
+    fz_openrfile(&xref->file, filename)
+    pdf_loadxref2(xref)
+(mupdf/pdf_open.c)
+
+This means pdf_loadxref2 is more general - could be used to load pdf from memory or from buffer [1]. Unfortunately, pdf_loadxref2 is defined as static... :-(
+
+[1]: To load something from buffer or memory, use fz_openrbuffer or fz_openrmemory (fitz/stm_open.c).
+

@@ -1,0 +1,151 @@
+MuPDF Python bindings test suite
+================================
+
+#>>> import os
+#>>> os.environ['MULOG'] = 'x' # debug mupdf
+#>>> os.environ['MULOG'] = 'a' # debug mupdf
+
+>>> import sys
+>>> sys.path.append('..')
+>>> from mupdf import PDF
+
+== PDF objects ==
+
+>>> from mupdf import Integer, Real, Array
+>>> i = Integer(123)
+>>> i
+Integer(123)
+>>> print i
+123
+>>> r = Real(12.34)
+>>> r
+Real(12.340000)
+>>> print r
+12.340000
+>>> a = Array([1.23, 4.56])
+>>> a
+Array([Real(1.230000), Real(4.560000)])
+>>> print a
+Array([1.230000, 4.560000])
+
+Error check:
+
+>>> Integer('error')
+Traceback (most recent call last):
+    ...
+TypeError: an integer is required
+>>> Integer(123.456)
+Traceback (most recent call last):
+    ...
+TypeError: an integer is required
+>>> Real('error')
+Traceback (most recent call last):
+    ...
+TypeError: a float is required
+>>> Array([12.34, 'err!'])
+Traceback (most recent call last):
+    ...
+TypeError: a float is required
+
+== Setting up ==
+
+>>> basic = 'test_basic'
+>>> basic_pdf = basic + '.pdf'
+>>> execfile(basic + '.txt') # width, height, startxref, pageid
+>>> bounds = tuple(float(n) for n in (0, 0, width, height))
+
+== Basic test ==
+
+>>> pdf = PDF(basic_pdf)
+>>> pdf # doctest: +ELLIPSIS
+<PDF "test_basic.pdf" at 0x...>
+>>> pdf.startxref == startxref
+True
+>>> len(pdf)
+1
+>>> page = pdf[0]
+>>> page # doctest: +ELLIPSIS
+<Page 0 at 0x... of <PDF "test_basic.pdf" at 0x...>>
+>>> page.object_id() == pageid # hope reportlab won't change this later
+True
+>>> page.bounds == bounds
+True
+
+== Render image ==
+
+>>> image = page.image_GDI()
+>>> image.format
+'BGRA'
+>>> (image.width, image.height) == (width, height)
+True
+>>> len(image.data) == width * height * len(image.format)
+True
+
+>>> def save_and_test_image(page, basename, testname):
+...     tpage = 'tmp_%s_%s.png' % (basename, testname)
+...     page.image_PIL().save(tpage)
+...     ref = '%s_%s_ref.png' % (basename, testname)
+...     assert open(tpage, 'rb').read() == open(ref, 'rb').read(), \
+...         'Images not equal: %s != %s' % (tpage, ref)
+
+>>> save_and_test_image(page, basic, 'p1')
+
+== Test update ==
+
+>>> def saved_is_okay(newfname, oldfname, newbounds):
+...     from crudepdf import loadxref, loadxrefs, loadprev
+...     
+...     old = open(oldfname, 'rb').read() 
+...     new = open(newfname, 'rb').read()
+...
+...     assert new[:len(old)] == old # check if it's really incremental
+...
+...     oldxref = loadxref(old)
+...     assert loadxrefs(new)[0] == oldxref
+...     assert loadprev(new) == oldxref
+...
+...     assert PDF(newfname)[0].bounds == newbounds
+...
+...     return True
+
+#>>> newbounds = 50.0, 50.0, 150.0, 250.0
+#>>> newbounds = 50.0, 150.0, 150.0, 250.0
+
+>>> newbounds = 50.0, 50.0, 150.0, 150.0
+
+>>> page.bounds = newbounds
+
+>>> pdf.memorysave()
+
+#>>> page.bounds == newbounds # doctest: +SKIP
+#True
+
+>>> newpage = pdf[0]
+
+>>> newpage.bounds == newbounds
+True
+
+#>>> im = newpage.image_GDI() # for bug?
+
+>>> save_and_test_image(newpage, basic, 'p1_crop')
+
+>>> cropped = 'tmp_cropped.pdf'
+>>> pdf.fastsave(cropped)
+>>> saved_is_okay(cropped, basic_pdf, newbounds)
+True
+
+== invalid password bug ==
+
+>>> pdf = PDF('../eat.pdf') # extend create_test_data.py (with urllib2.urlopen)
+>>> page = pdf[0]                   # doctest: -SKIP 
+>>> im = page.image_GDI()           # doctest: +SKIP
+>>> page.bounds = 19, 646, 119, 799 # doctest: +SKIP
+>>> pdf.memorysave()                # doctest: -SKIP
+>>> im = pdf[0].image_GDI()         # doctest: +SKIP
+
+== Debug tests ==
+
+#>>> PDF('no.pdf')
+#Traceback (most recent call last):
+#    ...
+#PDFError: Cannot open file: no.pdf
