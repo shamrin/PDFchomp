@@ -1,6 +1,6 @@
-## PDFchomp: graphical PDF editor
+**This project is currently DEAD. I found it looking through my old files. Worked on it in September 2009.**
 
-**This project is currently DEAD. I found it looking through my abandoned projects. Worked on it in September 2009.**
+## PDFchomp: graphical PDF editor
 
 PDFchomp is an open source (GPL) PDF editor with a Python API. In the last version you could open PDF file, choose a crop rectangle with a mouse and save the cropped file.
 
